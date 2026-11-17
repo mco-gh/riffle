@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <rect width="40" height="40" rx="10" fill="#1f1c24"/>
+  <g transform="translate(-1 1)">
+    <g transform="rotate(26 20 34)"><rect x="12.5" y="9" width="15" height="21" rx="2.6" fill="#e7b423"/></g>
+    <g transform="rotate(5 20 34)"><rect x="12.5" y="9" width="15" height="21" rx="2.6" fill="#e0533d"/></g>
+    <g transform="rotate(-16 20 34)"><rect x="12.5" y="9" width="15" height="21" rx="2.6" fill="#3b6fd8"/>
+      <text x="20" y="24.6" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="13" fill="#fff">R</text></g>
+  </g>
+</svg>

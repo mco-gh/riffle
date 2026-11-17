@@ -44,3 +44,10 @@ Progress and stats live in localStorage (French keys are prefixed `fr:`).
     python3 -m http.server 4174 --directory /path/to/mco.dev/static
 
 Then open http://localhost:4174/riffle/.
+
+## Install on a phone
+
+The app is an installable web app: `manifest.webmanifest` describes it, and `sw.js`
+is a network-first service worker, so it is always current when online and still
+opens offline. Nothing needs bumping on release. The icons in `icons/` are rendered
+from the SVG sources by `bash build/icons/render.sh` (needs Google Chrome).
