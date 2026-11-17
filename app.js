@@ -1,4 +1,5 @@
 // Riffle: three words riffled together like cards. Pull them apart in as few words as you can.
+import { LANGS } from "./i18n.js";
 
 const PAR = 3;
 const MIN_LEN = 3;
@@ -21,12 +22,18 @@ function dayNumber(d = new Date()) {
   return Math.round((local - EPOCH) / 86400000) + 1;
 }
 
+// Letters only: drop accents and split ligatures (é -> e, œ -> oe). A no-op for English.
+function plain(s) {
+  return s.toLowerCase().replace(/œ/g, "oe").replace(/æ/g, "ae").normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
 // Pick three words and riffle them so no word shows more than 2 letters in a row.
 function makePuzzle(answers, seedStr) {
   const rnd = mulberry32(hashStr(seedStr));
   const pick = () => answers[Math.floor(rnd() * answers.length)];
   for (let attempt = 0; attempt < 500; attempt++) {
-    const words = [pick(), pick(), pick()];
+    const display = [pick(), pick(), pick()];
+    const words = display.map(plain);
     const total = words.reduce((n, w) => n + w.length, 0);
     if (new Set(words).size < 3 || total < 15 || total > 18) continue;
     for (let tries = 0; tries < 60; tries++) {
@@ -47,14 +54,28 @@ function makePuzzle(answers, seedStr) {
       const s = strip.map((t) => t.ch).join("");
       if (words.some((w) => s.includes(w))) continue;
       if (strip[0].src === strip[1].src && strip[1].src === strip[2]?.src) continue;
-      return { words, strip };
+      return { words, display, strip };
     }
   }
   throw new Error("could not build puzzle");
 }
 
+// ---------- per-language data ----------
+const data = {};   // lang -> { answers, dict (Set, once loaded) }
+async function loadLang(code) {
+  if (!data[code]) {
+    data[code] = { answers: await (await fetch(`data/${code}/answers.json`)).json(), dict: null };
+    fetch(`data/${code}/dict.txt`).then((r) => r.text()).then((t) => {
+      data[code].dict = new Set(t.split("\n"));
+      if (code === lang && $("msg").textContent === T.loading) setMsg("");
+    });
+  }
+  return data[code];
+}
+
 // ---------- state ----------
-let answers = [], dict = null;
+let lang = LANGS[store.get("lang", "en")] ? store.get("lang", "en") : "en";
+let L = LANGS[lang], T = L.t;
 let mode = "daily";          // "daily" | "practice"
 let day = dayNumber();
 let puzzle, key;              // key = storage key for this puzzle's progress
@@ -64,22 +85,23 @@ let hints = [];               // secret word indices revealed
 let solved = false;
 let flipNext = new Set();
 
+const k = (name) => L.storePrefix + name;   // storage key in the current language
 function owner(i) { return found.findIndex((f) => f.idx.includes(i)); }
 function colorOf(n) { return "c" + (n % SQUARES.length); }
+const up = (s) => s.toLocaleUpperCase(lang);
 
 function load(newMode, seed) {
+  const answers = data[lang].answers;
   mode = newMode;
-  if (mode === "daily") { day = dayNumber(); key = "day:" + day; puzzle = makePuzzle(answers, "riffle-daily-" + day); }
-  else { key = "practice"; puzzle = makePuzzle(answers, seed); }
+  if (mode === "daily") { day = dayNumber(); key = k("day:" + day); puzzle = makePuzzle(answers, L.seed + day); }
+  else { key = k("practice"); puzzle = makePuzzle(answers, seed); }
   const saved = store.get(key, null);
   const valid = saved && (mode === "daily" || saved.seed === seed);
   found = valid ? saved.found : [];
   hints = valid ? saved.hints || [] : [];
   solved = valid ? !!saved.solved : false;
-  if (mode === "practice") store.set("practice", { seed, found, hints, solved });
+  if (mode === "practice") store.set(key, { seed, found, hints, solved });
   sel = [];
-  $("label").textContent = mode === "daily" ? `Daily #${day}` : "Practice";
-  $("btn-mode").textContent = mode === "daily" ? "Practice" : "Back to daily";
   setMsg("");
   render();
 }
@@ -87,6 +109,28 @@ function load(newMode, seed) {
 function save() {
   const prev = store.get(key, {});
   store.set(key, { ...prev, found, hints, solved });
+}
+
+// ---------- static text ----------
+function applyLang() {
+  document.documentElement.lang = lang;
+  $("lang").value = lang;
+  for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = T[el.dataset.i18n];
+  for (const el of document.querySelectorAll("[data-i18n-aria]")) el.setAttribute("aria-label", T[el.dataset.i18nAria]);
+  $("word").dataset.placeholder = T.tapLetters;
+  const ex = L.example;
+  const tiles = [...ex.letters].map((ch, i) => `<span class="t c${ex.src[i]}">${ch}</span>`).join("");
+  $("help-body").innerHTML = T.help.replace("%EXAMPLE%",
+    `<div class="example" aria-hidden="true">${tiles}</div><p class="caption">${ex.caption}</p>`);
+}
+
+async function switchLang(code) {
+  if (!LANGS[code] || code === lang) return;
+  await loadLang(code);
+  lang = code; L = LANGS[code]; T = L.t;
+  store.set("lang", code);
+  applyLang();
+  load("daily");
 }
 
 // ---------- rendering ----------
@@ -102,13 +146,15 @@ function render() {
     else if (i < last) b.classList.add("behind");
     const h = hints.find((w) => firstTile(w) === i);
     if (h !== undefined) { b.classList.add("hint"); b.dataset.len = puzzle.words[h].length; }
-    b.setAttribute("aria-label", `${t.ch.toUpperCase()}${o >= 0 ? ", used" : sel.includes(i) ? ", selected" : ""}`);
+    b.setAttribute("aria-label", `${up(t.ch)}${o >= 0 ? ", " + T.used : sel.includes(i) ? ", " + T.selected : ""}`);
     return b;
   }));
   flipNext = new Set();
 
+  $("label").textContent = mode === "daily" ? T.daily(day) : T.practice;
+  $("btn-mode").textContent = mode === "daily" ? T.practice : T.backToDaily;
   $("word").textContent = sel.map((i) => puzzle.strip[i].ch).join("");
-  $("count").textContent = `${found.length} word${found.length === 1 ? "" : "s"}`;
+  $("count").textContent = T.words(found.length);
 
   $("found").replaceChildren(...found.map((f, n) => {
     const li = document.createElement("li");
@@ -116,7 +162,7 @@ function render() {
     li.append(f.word);
     if (!solved) {
       const x = document.createElement("button");
-      x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", `Put back ${f.word}`);
+      x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", T.putBack(f.word));
       x.onclick = () => removeWord(n);
       li.append(x);
     }
@@ -126,7 +172,7 @@ function render() {
   const playing = !solved;
   for (const id of ["btn-clear", "btn-back", "btn-enter"]) $(id).disabled = !playing || !sel.length;
   $("btn-hint").disabled = !playing || hints.length >= PAR;
-  $("btn-hint").textContent = hints.length ? `Hint (${hints.length}/${PAR})` : "Hint";
+  $("btn-hint").textContent = hints.length ? T.hintCount(hints.length, PAR) : T.hint;
   $("btn-reset").disabled = !playing || !found.length;
   $("done").hidden = !solved;
   document.querySelector(".entry").hidden = solved;
@@ -161,7 +207,7 @@ function typeLetter(ch) {
   for (let i = from; i < puzzle.strip.length; i++) {
     if (puzzle.strip[i].ch === ch && owner(i) < 0) { sel.push(i); setMsg(""); render(); return; }
   }
-  setMsg(`No free ${ch.toUpperCase()} after that`, true);
+  setMsg(T.noFree(up(ch)), true);
 }
 
 function backspace() { if (sel.length) { sel.pop(); setMsg(""); render(); } }
@@ -170,9 +216,10 @@ function clearSel() { sel = []; setMsg(""); render(); }
 function submit() {
   if (solved || !sel.length) return;
   const word = sel.map((i) => puzzle.strip[i].ch).join("");
-  if (word.length < MIN_LEN) return setMsg(`Words need ${MIN_LEN}+ letters`, true);
-  if (!dict) return setMsg("Loading word list…");
-  if (!dict.has(word)) return setMsg("Not in the word list", true);
+  if (word.length < MIN_LEN) return setMsg(T.tooShort(MIN_LEN), true);
+  const dict = data[lang].dict;
+  if (!dict) return setMsg(T.loading);
+  if (!dict.has(word)) return setMsg(T.notWord, true);
   found.push({ word, idx: [...sel] });
   flipNext = new Set(sel);
   sel = [];
@@ -186,15 +233,15 @@ function submit() {
 
 function praise(word, left) {
   const n = word.length;
-  const tag = n >= 8 ? "Huge!" : n >= 6 ? "Nice!" : n >= 5 ? "Good." : "";
-  return `${tag} ${left} letter${left === 1 ? "" : "s"} left`.trim();
+  const tag = n >= 8 ? T.huge : n >= 6 ? T.nice : n >= 5 ? T.good : "";
+  return `${tag} ${T.left(left)}`.trim();
 }
 
 function removeWord(n) {
   if (solved) return;
   found.splice(n, 1);
   sel = [];
-  setMsg("Letters returned");
+  setMsg(T.returned);
   save(); render();
 }
 
@@ -210,31 +257,23 @@ function hint() {
   const order = [0, 1, 2].filter((w) => !hints.includes(w)).sort((a, b) => exact(a) - exact(b) || firstTile(a) - firstTile(b));
   const w = order[0];
   hints.push(w);
-  setMsg(`A hidden ${puzzle.words[w].length}-letter word starts with the marked ${puzzle.words[w][0].toUpperCase()}`);
+  setMsg(T.hintMsg(puzzle.words[w].length, up(puzzle.words[w][0])));
   save(); render();
 }
 
 // ---------- finishing ----------
-function verdict(n) {
-  if (n === 1) return ["Impossible!", "One word. Unbelievable."];
-  if (n === 2) return ["Under par!", "2 words. Better than the puzzle itself."];
-  if (n === 3) return ["Perfect riffle", "Solved in 3 words, right on par."];
-  if (n === 4) return ["Riffled", "4 words, one over par."];
-  return ["Riffled", `${n} words. Can you get it in 3 tomorrow?`];
-}
-
 function finish() {
   solved = true;
   if (mode === "daily") {
-    const s = store.get("stats", { played: 0, streak: 0, best: 0, last: 0, dist: {} });
+    const s = store.get(k("stats"), { played: 0, streak: 0, best: 0, last: 0, dist: {} });
     if (s.last !== day) {
       s.played++;
       s.streak = s.last === day - 1 ? s.streak + 1 : 1;
       s.best = Math.max(s.best, s.streak);
       s.last = day;
-      const k = Math.min(found.length, 6);
-      s.dist[k] = (s.dist[k] || 0) + 1;
-      store.set("stats", s);
+      const n = Math.min(found.length, 6);
+      s.dist[n] = (s.dist[n] || 0) + 1;
+      store.set(k("stats"), s);
     }
   }
 }
@@ -242,23 +281,23 @@ function finish() {
 function shareText() {
   const n = found.length;
   const bar = puzzle.strip.map((_, i) => SQUARES[owner(i) % SQUARES.length]).join("");
-  const label = mode === "daily" ? `Riffle #${day}` : "Riffle (practice)";
+  const label = `${L.shareName} ${mode === "daily" ? T.shareDaily(day) : T.sharePractice}`;
   const h = hints.length ? ` · 💡${hints.length}` : "";
-  return `${label} · ${n} word${n === 1 ? "" : "s"} (par ${PAR})${h}\n${bar}\nmco.dev/riffle`;
+  return `${label} · ${T.shareWords(n, PAR)}${h}\n${bar}\nmco.dev/riffle`;
 }
 
 function renderDone() {
-  const [title, sub] = verdict(found.length);
+  const [title, sub] = T.verdict(found.length);
   $("done-title").textContent = title;
-  $("done-sub").textContent = sub + (hints.length ? ` ${hints.length} hint${hints.length > 1 ? "s" : ""}.` : "");
+  $("done-sub").textContent = sub + (hints.length ? T.hints(hints.length) : "");
   const mine = new Set(found.map((f) => f.word));
   $("secret").replaceChildren(
-    Object.assign(document.createElement("p"), { textContent: "The riffled words:", style: "width:100%;font-size:.85rem" }),
-    ...puzzle.words.map((w) => Object.assign(document.createElement("span"), { textContent: (mine.has(w) ? "✓ " : "") + w })),
+    Object.assign(document.createElement("p"), { textContent: T.riffled, style: "width:100%;font-size:.85rem" }),
+    ...puzzle.display.map((w, i) => Object.assign(document.createElement("span"), { textContent: (mine.has(puzzle.words[i]) ? "✓ " : "") + w })),
   );
   $("share-text").textContent = shareText();
-  $("btn-next").textContent = mode === "daily" ? "Practice puzzle" : "Next practice";
-  $("next-daily").textContent = mode === "daily" ? "A new daily puzzle arrives at midnight." : "";
+  $("btn-next").textContent = mode === "daily" ? T.practicePuzzle : T.nextPractice;
+  $("next-daily").textContent = mode === "daily" ? T.nextDaily : "";
 }
 
 async function share() {
@@ -266,8 +305,8 @@ async function share() {
   try {
     if (navigator.share && matchMedia("(pointer: coarse)").matches) { await navigator.share({ text }); return; }
     await navigator.clipboard.writeText(text);
-    toast("Copied to clipboard");
-  } catch (e) { if (e?.name !== "AbortError") toast("Couldn't share. Select the text to copy it"); }
+    toast(T.copied);
+  } catch (e) { if (e?.name !== "AbortError") toast(T.cantShare); }
 }
 
 let toastTimer;
@@ -280,17 +319,17 @@ function newPractice() { load("practice", "p-" + Date.now().toString(36) + Math.
 
 // ---------- stats ----------
 function renderStats() {
-  const s = store.get("stats", { played: 0, streak: 0, best: 0, last: 0, dist: {} });
-  const par = Object.entries(s.dist).filter(([k]) => +k <= PAR).reduce((a, [, v]) => a + v, 0);
+  const s = store.get(k("stats"), { played: 0, streak: 0, best: 0, last: 0, dist: {} });
+  const par = Object.entries(s.dist).filter(([n]) => +n <= PAR).reduce((a, [, v]) => a + v, 0);
   $("stat-row").innerHTML = [
-    [s.played, "Solved"], [s.played ? Math.round((par / s.played) * 100) + "%" : "–", "At or under par"],
-    [s.last >= day - 1 ? s.streak : 0, "Streak"], [s.best, "Best streak"],
+    [s.played, T.solved], [s.played ? Math.round((par / s.played) * 100) + "%" : "–", T.atPar],
+    [s.last >= day - 1 ? s.streak : 0, T.streak], [s.best, T.best],
   ].map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join("");
   const max = Math.max(1, ...Object.values(s.dist));
   const today = mode === "daily" && solved ? Math.min(found.length, 6) : 0;
-  $("dist").innerHTML = [1, 2, 3, 4, 5, 6].map((k) => {
-    const v = s.dist[k] || 0;
-    return `<div class="r"><span>${k === 6 ? "6+" : k}</span><div class="bar${k === today ? " on" : ""}" style="width:${8 + (92 * v) / max}%">${v}</div></div>`;
+  $("dist").innerHTML = [1, 2, 3, 4, 5, 6].map((n) => {
+    const v = s.dist[n] || 0;
+    return `<div class="r"><span>${n === 6 ? "6+" : n}</span><div class="bar${n === today ? " on" : ""}" style="width:${8 + (92 * v) / max}%">${v}</div></div>`;
   }).join("");
 }
 
@@ -304,25 +343,30 @@ $("btn-reset").onclick = reset;
 $("btn-share").onclick = share;
 $("btn-next").onclick = newPractice;
 $("btn-mode").onclick = () => {
-  if (mode === "daily") { const p = store.get("practice", null); p && !p.solved ? load("practice", p.seed) : newPractice(); }
+  if (mode === "daily") { const p = store.get(k("practice"), null); p && !p.solved ? load("practice", p.seed) : newPractice(); }
   else load("daily");
 };
+$("lang").addEventListener("change", (e) => { switchLang(e.target.value); e.target.blur(); });
 $("btn-help").onclick = () => $("help").showModal();
 $("btn-stats").onclick = () => { renderStats(); $("stats").showModal(); };
 for (const d of document.querySelectorAll("dialog")) d.addEventListener("click", (e) => { if (e.target === d) d.close(); });
 
 document.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector("dialog[open]")) return;
+  if (e.target instanceof HTMLSelectElement) return;
   if (e.key === "Enter") { e.preventDefault(); submit(); }
   else if (e.key === "Backspace") { e.preventDefault(); backspace(); }
   else if (e.key === "Escape") clearSel();
-  else if (/^[a-zA-Z]$/.test(e.key)) typeLetter(e.key.toLowerCase());
+  else if (/^\p{L}$/u.test(e.key)) {
+    const ch = plain(e.key);                       // é typed on a French keyboard counts as e
+    if (/^[a-z]$/.test(ch)) typeLetter(ch);
+  }
 });
 
 // The day can roll over while the tab stays open.
 document.addEventListener("visibilitychange", () => { if (!document.hidden && mode === "daily" && dayNumber() !== day) load("daily"); });
 
-answers = await (await fetch("answers.json")).json();
+await loadLang(lang);
+applyLang();
 load("daily");
 if (!store.get("seenHelp", false)) { store.set("seenHelp", true); $("help").showModal(); }
-fetch("dict.txt").then((r) => r.text()).then((t) => { dict = new Set(t.split("\n")); if ($("msg").textContent.startsWith("Loading")) setMsg(""); });

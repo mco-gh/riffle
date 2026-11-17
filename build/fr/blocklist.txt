@@ -1,0 +1,13 @@
+alcool
+arme
+assassin
+cadavre
+cocaine
+meurtre
+nazi
+raciste
+suicide
+torture
+viol
+victime
+esclave
