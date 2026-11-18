@@ -167,3 +167,6 @@ dialog::backdrop { background: rgb(10 8 16 / .45); }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* Copyright notice at the foot of the page. */
+.copyright { margin: 0; padding: 1.5rem 1rem calc(1.5rem + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: 0.8rem; color: var(--muted); }
