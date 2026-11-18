@@ -1,15 +1,19 @@
+/* Colour carries meaning on the strip: a tile's colour says which of your words it
+   went into. So unplayed tiles are all one cream "card" colour, the selection is a
+   pink no word uses, and the liveliness comes from everything around them. */
 :root {
-  --bg: #f4efe6;
+  --bg: #f6f0e4;
+  --glow-a: rgb(59 111 216 / .16); --glow-b: rgb(236 72 153 / .14); --glow-c: rgb(231 180 35 / .18);
   --surface: #fffaf2;
   --ink: #1f1c24;
-  --muted: #6f6878;
+  --muted: #6a6274;
   --line: #ddd3c4;
   --tile: #fffdf8;
-  --tile-edge: #cfc3b0;
-  --accent: #1f1c24;
-  --accent-ink: #fffaf2;
-  --sel: #1f1c24;
-  --sel-ink: #fffaf2;
+  --tile-ink: #1f1c24;
+  --tile-edge: #d6c8b2;
+  --pop: linear-gradient(135deg, #ff5fa2, #d6257a);
+  --pop-edge: #a8155c;
+  --pop-ink: #fff;
   --c0: #3b6fd8; --c1: #e0533d; --c2: #e7b423; --c3: #2f9e5b; --c4: #8a55c9; --c5: #ec8a2c;
   --serif: "Fraunces", Georgia, "Times New Roman", serif;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -17,17 +21,17 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #16141c; --surface: #201d28; --ink: #f1ecf7; --muted: #9f97ab; --line: #343040;
-    --tile: #25222e; --tile-edge: #3d3849; --accent: #f1ecf7; --accent-ink: #16141c;
-    --sel: #f1ecf7; --sel-ink: #16141c;
+    --bg: #1a1430; --surface: #261e40; --ink: #f3eefb; --muted: #a99fbe; --line: #3a3156;
+    --glow-a: rgb(91 140 240 / .30); --glow-b: rgb(236 72 153 / .26); --glow-c: rgb(240 197 62 / .18);
+    --tile: #fbf5ea; --tile-ink: #1f1c24; --tile-edge: #b9ab95;
     --c0: #5b8cf0; --c1: #f06b54; --c2: #f0c53e; --c3: #46b874; --c4: #a874e0; --c5: #f5a04f;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #16141c; --surface: #201d28; --ink: #f1ecf7; --muted: #9f97ab; --line: #343040;
-  --tile: #25222e; --tile-edge: #3d3849; --accent: #f1ecf7; --accent-ink: #16141c;
-  --sel: #f1ecf7; --sel-ink: #16141c;
+  --bg: #1a1430; --surface: #261e40; --ink: #f3eefb; --muted: #a99fbe; --line: #3a3156;
+  --glow-a: rgb(91 140 240 / .30); --glow-b: rgb(236 72 153 / .26); --glow-c: rgb(240 197 62 / .18);
+  --tile: #fbf5ea; --tile-ink: #1f1c24; --tile-edge: #b9ab95;
   --c0: #5b8cf0; --c1: #f06b54; --c2: #f0c53e; --c3: #46b874; --c4: #a874e0; --c5: #f5a04f;
   color-scheme: dark;
 }
@@ -37,7 +41,15 @@
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans);
-  min-height: 100dvh; -webkit-tap-highlight-color: transparent;
+  min-height: 100dvh; -webkit-tap-highlight-color: transparent; position: relative; isolation: isolate;
+}
+/* Soft coloured glows behind everything (a fixed layer, since iOS ignores fixed backgrounds). */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(60vmax 45vmax at 0% 0%, var(--glow-a), transparent 70%),
+    radial-gradient(55vmax 45vmax at 100% 18%, var(--glow-b), transparent 70%),
+    radial-gradient(70vmax 50vmax at 50% 100%, var(--glow-c), transparent 70%);
 }
 button { font: inherit; color: inherit; cursor: pointer; }
 
@@ -53,7 +65,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
   color: var(--ink); font: 700 .85rem var(--sans); letter-spacing: .04em; padding: 0 26px 0 13px; cursor: pointer;
 }
 .brand { text-align: center; }
-.brand h1 { font-family: var(--serif); font-weight: 800; font-size: 2rem; margin: 0; letter-spacing: -0.02em; line-height: 1; }
+.brand h1 { display: flex; justify-content: center; gap: 3px; margin: 0; line-height: 1; }
+/* The title spelled on little cards, one per word colour. */
+.brand h1 .L {
+  display: grid; place-items: center; width: 1.45rem; height: 1.9rem; border-radius: 5px;
+  font: 800 1.25rem/1 var(--serif); color: #fff; box-shadow: 0 2px 0 rgb(0 0 0 / .18);
+  transform: rotate(var(--r, 0deg)) translateY(var(--y, 0));
+}
+.brand h1 .L.c2 { color: #2a2205; }
+.brand h1 .L:nth-child(1) { --r: -8deg; --y: 1px; }  .brand h1 .L:nth-child(2) { --r: 4deg; --y: -2px; }
+.brand h1 .L:nth-child(3) { --r: -3deg; }            .brand h1 .L:nth-child(4) { --r: 6deg; --y: -1px; }
+.brand h1 .L:nth-child(5) { --r: -5deg; --y: 1px; }  .brand h1 .L:nth-child(6) { --r: 7deg; }
 .credit { margin: 4px 0 0; font-size: 0.72rem; color: var(--muted); }
 .credit a { color: inherit; }
 .icon-btn {
@@ -64,6 +86,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 main { max-width: 560px; margin: 0 auto; padding: 0 16px 48px; }
 .meta { text-align: center; color: var(--muted); font-size: 0.9rem; margin: 10px 0 16px; }
 .meta b { color: var(--ink); }
+.meta #label {
+  display: inline-block; padding: 3px 11px; border-radius: 999px; font-weight: 700; font-size: .85rem;
+  color: var(--pop-ink); background: var(--pop); box-shadow: 0 2px 0 var(--pop-edge);
+}
 .dot { margin: 0 6px; }
 
 .strip {
@@ -74,14 +100,20 @@ main { max-width: 560px; margin: 0 auto; padding: 0 16px 48px; }
 @media (max-width: 440px) { .strip { --cols: 6; } }
 .t {
   aspect-ratio: 3 / 4; border-radius: 9px; border: 1.5px solid var(--tile-edge);
-  background: var(--tile); color: var(--ink);
+  background: var(--tile); color: var(--tile-ink);
   font-family: var(--serif); font-weight: 600; font-size: clamp(1.3rem, 5vw, 1.7rem);
   text-transform: uppercase; display: grid; place-items: center; padding: 0;
-  box-shadow: 0 2px 0 var(--tile-edge); position: relative; user-select: none;
+  box-shadow: 0 3px 0 var(--tile-edge), 0 6px 14px rgb(0 0 0 / .10); position: relative; user-select: none;
   transition: transform .12s, background-color .25s, color .25s, opacity .2s, box-shadow .12s;
 }
-.t:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--tile-edge); }
-.t.sel { background: var(--sel); color: var(--sel-ink); border-color: var(--sel); box-shadow: 0 2px 0 var(--sel); transform: translateY(-3px); }
+.t:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--tile-edge); }
+.t.sel {
+  background: var(--pop); color: var(--pop-ink); border-color: transparent;
+  box-shadow: 0 3px 0 var(--pop-edge), 0 8px 18px rgb(214 37 122 / .35); transform: translateY(-4px);
+}
+/* Dealt in like cards when a puzzle opens. */
+.t.deal { animation: deal .42s cubic-bezier(.2, .8, .3, 1.2) both; }
+@keyframes deal { from { opacity: 0; transform: translateY(-18px) rotate(-8deg) scale(.85); } }
 .t.behind { opacity: .45; }
 .t.used { color: #fff; border-color: transparent; box-shadow: none; cursor: default; }
 .t.used.c2 { color: #2a2205; }
@@ -110,9 +142,10 @@ main { max-width: 560px; margin: 0 auto; padding: 0 16px 48px; }
   border: 1.5px solid var(--ink); background: transparent; border-radius: 999px;
   padding: 11px 20px; font-weight: 600; min-width: 64px;
 }
-.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.primary { background: var(--pop); color: var(--pop-ink); border-color: transparent; box-shadow: 0 3px 0 var(--pop-edge); }
 .btn.wide { width: 100%; margin-top: 8px; }
-.btn:disabled { opacity: .35; cursor: default; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary:disabled { opacity: .6; box-shadow: none; }
 
 .found { list-style: none; padding: 0; margin: 22px 0 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .found li {
@@ -121,6 +154,13 @@ main { max-width: 560px; margin: 0 auto; padding: 0 16px 48px; }
   animation: pop .3s;
 }
 .found li.c2 { color: #2a2205; }
+/* Before you find them: where your first three words will land, in their colours. */
+.found li.slot {
+  width: 5.2rem; height: 34px; padding: 0; background: transparent; animation: none;
+  border: 2px dashed var(--slot); background-color: color-mix(in srgb, var(--slot) 14%, transparent);
+}
+.found li.slot.c0 { --slot: var(--c0); } .found li.slot.c1 { --slot: var(--c1); } .found li.slot.c2 { --slot: var(--c2); }
+.found li.slot.c3 { --slot: var(--c3); } .found li.slot.c4 { --slot: var(--c4); } .found li.slot.c5 { --slot: var(--c5); }
 .found li button { border: 0; background: rgb(0 0 0 / .18); color: inherit; width: 24px; height: 24px; border-radius: 50%; line-height: 1; font-size: 1rem; }
 @keyframes pop { from { transform: scale(.6); opacity: 0 } }
 
@@ -161,7 +201,7 @@ dialog::backdrop { background: rgb(10 8 16 / .45); }
 
 .toast {
   position: fixed; left: 50%; top: 18px; transform: translate(-50%, -20px); opacity: 0; pointer-events: none;
-  background: var(--accent); color: var(--accent-ink); padding: 10px 18px; border-radius: 999px; font-weight: 600;
+  background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 600;
   transition: opacity .2s, transform .2s; z-index: 10;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }

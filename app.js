@@ -84,6 +84,7 @@ let sel = [];                 // selected tile indices
 let hints = [];               // secret word indices revealed
 let solved = false;
 let flipNext = new Set();
+let dealNext = false;         // deal the tiles in on the next render (a puzzle just opened)
 
 const k = (name) => L.storePrefix + name;   // storage key in the current language
 function owner(i) { return found.findIndex((f) => f.idx.includes(i)); }
@@ -103,6 +104,7 @@ function load(newMode, seed) {
   if (mode === "practice") store.set(key, { seed, found, hints, solved });
   sel = [];
   setMsg("");
+  dealNext = true;
   render();
 }
 
@@ -144,18 +146,23 @@ function render() {
     if (o >= 0) { b.classList.add("used", colorOf(o)); b.disabled = true; if (flipNext.has(i)) { b.classList.add("flip"); b.style.animationDelay = `${flipNext.size > 1 ? [...flipNext].indexOf(i) * 60 : 0}ms`; } }
     else if (sel.includes(i)) b.classList.add("sel");
     else if (i < last) b.classList.add("behind");
+    if (dealNext) { b.classList.add("deal"); b.style.animationDelay = `${i * 28}ms`; }
     const h = hints.find((w) => firstTile(w) === i);
     if (h !== undefined) { b.classList.add("hint"); b.dataset.len = puzzle.words[h].length; }
     b.setAttribute("aria-label", `${up(t.ch)}${o >= 0 ? ", " + T.used : sel.includes(i) ? ", " + T.selected : ""}`);
     return b;
   }));
   flipNext = new Set();
+  dealNext = false;
 
   $("label").textContent = mode === "daily" ? T.daily(day) : T.practice;
   $("btn-mode").textContent = mode === "daily" ? T.practice : T.backToDaily;
   $("word").textContent = sel.map((i) => puzzle.strip[i].ch).join("");
   $("count").textContent = T.words(found.length);
 
+  // Until par is reached, dashed slots show where the next words land, in their colours.
+  const slots = solved ? [] : Array.from({ length: Math.max(0, PAR - found.length) }, (_, j) =>
+    Object.assign(document.createElement("li"), { className: `slot ${colorOf(found.length + j)}`, ariaHidden: "true" }));
   $("found").replaceChildren(...found.map((f, n) => {
     const li = document.createElement("li");
     li.className = colorOf(n);
@@ -167,7 +174,7 @@ function render() {
       li.append(x);
     }
     return li;
-  }));
+  }), ...slots);
 
   const playing = !solved;
   for (const id of ["btn-clear", "btn-back", "btn-enter"]) $(id).disabled = !playing || !sel.length;
