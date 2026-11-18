@@ -108,7 +108,7 @@ main { max-width: 560px; margin: 0 auto; padding: 0 16px 48px; }
 }
 .t:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--tile-edge); }
 .t.sel {
-  background: var(--pop); color: var(--pop-ink); border-color: transparent;
+  background: var(--pop) border-box; color: var(--pop-ink); border-color: transparent;
   box-shadow: 0 3px 0 var(--pop-edge), 0 8px 18px rgb(214 37 122 / .35); transform: translateY(-4px);
 }
 /* Dealt in like cards when a puzzle opens. */
@@ -142,7 +142,8 @@ main { max-width: 560px; margin: 0 auto; padding: 0 16px 48px; }
   border: 1.5px solid var(--ink); background: transparent; border-radius: 999px;
   padding: 11px 20px; font-weight: 600; min-width: 64px;
 }
-.btn.primary { background: var(--pop); color: var(--pop-ink); border-color: transparent; box-shadow: 0 3px 0 var(--pop-edge); }
+/* background-origin: border-box stops the gradient repeating into the transparent border as a seam. */
+.btn.primary { background: var(--pop) border-box; color: var(--pop-ink); border-color: transparent; box-shadow: 0 3px 0 var(--pop-edge); }
 .btn.wide { width: 100%; margin-top: 8px; }
 .btn:disabled { opacity: .45; cursor: default; }
 .btn.primary:disabled { opacity: .6; box-shadow: none; }
@@ -156,8 +157,9 @@ main { max-width: 560px; margin: 0 auto; padding: 0 16px 48px; }
 .found li.c2 { color: #2a2205; }
 /* Before you find them: where your first three words will land, in their colours. */
 .found li.slot {
-  width: 5.2rem; height: 34px; padding: 0; background: transparent; animation: none;
+  width: 5.2rem; height: 34px; padding: 0; background: transparent; animation: none; justify-content: center;
   border: 2px dashed var(--slot); background-color: color-mix(in srgb, var(--slot) 14%, transparent);
+  color: color-mix(in srgb, var(--slot) 70%, var(--ink)); font-size: .78rem; letter-spacing: .04em; text-transform: none;
 }
 .found li.slot.c0 { --slot: var(--c0); } .found li.slot.c1 { --slot: var(--c1); } .found li.slot.c2 { --slot: var(--c2); }
 .found li.slot.c3 { --slot: var(--c3); } .found li.slot.c4 { --slot: var(--c4); } .found li.slot.c5 { --slot: var(--c5); }

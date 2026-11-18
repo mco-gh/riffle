@@ -162,7 +162,9 @@ function render() {
 
   // Until par is reached, dashed slots show where the next words land, in their colours.
   const slots = solved ? [] : Array.from({ length: Math.max(0, PAR - found.length) }, (_, j) =>
-    Object.assign(document.createElement("li"), { className: `slot ${colorOf(found.length + j)}`, ariaHidden: "true" }));
+    Object.assign(document.createElement("li"), {
+      className: `slot ${colorOf(found.length + j)}`, ariaHidden: "true", textContent: T.slot(found.length + j + 1),
+    }));
   $("found").replaceChildren(...found.map((f, n) => {
     const li = document.createElement("li");
     li.className = colorOf(n);
