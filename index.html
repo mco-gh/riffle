@@ -14,6 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap" rel="stylesheet">
+  <script>try { const t = localStorage.getItem("riffle:theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -28,10 +29,9 @@
     </div>
     <div class="actions">
       <button class="icon-btn" id="btn-help" type="button" data-i18n-aria="howToPlay">?</button>
-      <select id="lang" class="lang" data-i18n-aria="language">
-        <option value="en">EN</option>
-        <option value="fr">FR</option>
-      </select>
+      <button class="icon-btn" id="btn-settings" type="button" data-i18n-aria="settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4.5v5M6 14.5v5"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+      </button>
       <button class="icon-btn" id="btn-stats" type="button" data-i18n-aria="statistics">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M4 20V10h3v10H4Zm6.5 0V4h3v16h-3ZM17 20v-7h3v7h-3Z"/></svg>
       </button>
@@ -87,6 +87,18 @@
     <form method="dialog"><button class="close" data-i18n-aria="close">×</button></form>
     <div id="help-body"></div>
     <form method="dialog"><button class="btn primary wide" data-i18n="play">Play</button></form>
+  </dialog>
+
+  <dialog id="settings" class="sheet">
+    <form method="dialog"><button class="close" data-i18n-aria="close">×</button></form>
+    <h2 data-i18n="settings">Settings</h2>
+    <h3><label for="lang" data-i18n="language">Language</label></h3>
+    <select id="lang" class="lang" data-i18n-aria="language">
+      <option value="en">English</option>
+      <option value="fr">Français</option>
+    </select>
+    <h3 data-i18n="appearance">Appearance</h3>
+    <div class="segmented"><label><input type="radio" name="scheme" value="system"><span data-i18n="system">System</span></label><label><input type="radio" name="scheme" value="light"><span data-i18n="light">Light</span></label><label><input type="radio" name="scheme" value="dark"><span data-i18n="dark">Dark</span></label></div>
   </dialog>
 
   <dialog id="stats" class="sheet">

@@ -379,3 +379,18 @@ await loadLang(lang);
 applyLang();
 load("daily");
 if (!store.get("seenHelp", false)) { store.set("seenHelp", true); $("help").showModal(); }
+
+// ── Settings: language (wired above) and Appearance: System, Light or Dark, saved in
+// this browser. The choice is set as data-theme on <html>, which the stylesheet follows. ──
+$("btn-settings").onclick = () => $("settings").showModal();
+for (const input of document.querySelectorAll('input[name="scheme"]')) {
+  input.checked = input.value === (document.documentElement.dataset.theme ?? "system");
+  input.addEventListener("change", () => {
+    if (input.value === "system") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = input.value;
+    try {
+      if (input.value === "system") localStorage.removeItem("riffle:theme");
+      else localStorage.setItem("riffle:theme", input.value);
+    } catch { /* the choice still applies for this visit */ }
+  });
+}
