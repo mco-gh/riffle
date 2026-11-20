@@ -380,7 +380,7 @@ applyLang();
 load("daily");
 if (!store.get("seenHelp", false)) { store.set("seenHelp", true); $("help").showModal(); }
 
-// ── Settings: language (wired above) and Appearance: System, Light or Dark, saved in
+// ── Settings: language (wired above) and Appearance: Light (the default), Dark or System, saved in
 // this browser. The choice is set as data-theme on <html>, which the stylesheet follows. ──
 $("btn-settings").onclick = () => $("settings").showModal();
 for (const input of document.querySelectorAll('input[name="scheme"]')) {
@@ -389,8 +389,8 @@ for (const input of document.querySelectorAll('input[name="scheme"]')) {
     if (input.value === "system") delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = input.value;
     try {
-      if (input.value === "system") localStorage.removeItem("riffle:theme");
-      else localStorage.setItem("riffle:theme", input.value);
+      // Saved even when it's System: with nothing saved, the app starts in Light.
+      localStorage.setItem("riffle:theme", input.value);
     } catch { /* the choice still applies for this visit */ }
   });
 }
