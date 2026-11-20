@@ -14,6 +14,7 @@ export const LANGS = {
     t: {
       madeWith: "Made with ❤️ by",
       allApps: "All apps",
+      tagline: "Three words, shuffled like cards. Pull them apart.",
       howToPlay: "How to play", statistics: "Statistics", language: "Language", close: "Close",
       strip: "Letter strip", yourWords: "Your words", backspace: "Delete last letter",
       par: "Par", clear: "Clear", enter: "Enter", startOver: "Start over", share: "Share", play: "Play",
@@ -67,6 +68,7 @@ export const LANGS = {
     t: {
       madeWith: "Fait avec ❤️ par",
       allApps: "Toutes les applis",
+      tagline: "Trois mots, mélangés comme des cartes. Séparez-les.",
       howToPlay: "Comment jouer", statistics: "Statistiques", language: "Langue", close: "Fermer",
       strip: "Bande de lettres", yourWords: "Vos mots", backspace: "Effacer la dernière lettre",
       par: "Par", clear: "Effacer", enter: "Valider", startOver: "Recommencer", share: "Partager", play: "Jouer",
