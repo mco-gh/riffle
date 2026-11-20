@@ -213,12 +213,8 @@ dialog::backdrop { background: rgb(10 8 16 / .45); }
 /* Copyright notice at the foot of the page. */
 .copyright { margin: 0; padding: 1.5rem 1rem calc(1.5rem + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: 0.8rem; color: var(--muted); }
 
-/* Back to the list of all of Marc's apps, on the credit line. */
-.credit .sep { margin-inline: 0.4em; }
-.apps-link { white-space: nowrap; }
+/* Back to the list of all of Marc's apps, on its own line under the credit. */
+.apps-link { display: block; inline-size: fit-content; margin-block-start: 0.15rem; white-space: nowrap; }
 .apps-link svg { display: inline; inline-size: 1.05em; block-size: 1.05em; margin-inline-end: 0.25em; vertical-align: -0.18em; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-/* Phones: too narrow for one line, so the link gets its own line instead of wrapping after the dot. */
-@media (max-width: 40rem) {
-  .credit .sep { display: none; }
-  .apps-link { display: block; margin-block-start: 0.15rem; }
-}
+/* Riffle centers its header, so center the link under the credit too. */
+.brand .apps-link { margin-inline: auto; }
